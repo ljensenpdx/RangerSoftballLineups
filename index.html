@@ -9,33 +9,24 @@
         :root { --ranger-red: #ce1126; --ranger-blue: #004d95; --light-bg: #f4f4f9; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--light-bg); padding: 10px; margin: 0; }
         .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        
         .tabs { display: flex; border-radius: 8px; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd; }
         .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; background: #eee; font-weight: bold; }
         .tab.active { background: var(--ranger-blue); color: white; }
-
         .lineup-list { list-style: none; padding: 0; min-height: 40px; }
         .player-row { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eee; background: #fff; }
         .handle { color: #ccc; font-size: 20px; padding: 0 5px; cursor: grab; }
         .order-num { width: 25px; font-weight: bold; color: #777; font-size: 14px; }
-        
         input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
         select { padding: 9px; border: 1px solid #ccc; border-radius: 6px; background: white; width: 70px; }
-
         .section-header { background: #eee; padding: 8px; font-weight: bold; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
         .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn-load { background: #28a745; color: white; font-size: 10px; margin-left: 5px; }
         .btn-cr { background: #eef6ff; color: var(--ranger-blue); border: 1px solid var(--ranger-blue); font-size: 11px; padding: 4px 6px; }
         .btn-save { background: var(--ranger-blue); color: white; width: 100%; margin-top: 20px; font-size: 16px; height: 45px; }
-
         .cr-section { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .cr-item { display: flex; align-items: center; gap: 10px; background: #eef6ff; padding: 8px; border-radius: 6px; border-left: 4px solid var(--ranger-blue); }
         .flex-row { border-left: 5px solid var(--ranger-red); background: #fff5f5; }
-
-        @media print {
-            .tabs, .btn, .handle, .section-header button, .btn-save { display: none !important; }
-            input { border: none !important; border-bottom: 1px solid #000 !important; }
-        }
+        @media print { .tabs, .btn, .handle, .section-header button, .btn-save { display: none !important; } }
     </style>
 </head>
 <body>
@@ -59,7 +50,9 @@
     </div>
 
     <div class="section-header">
-        <div>BENCH / SUBS <button class="btn btn-load" onclick="loadEstacada()">LOAD ESTACADA</button></div>
+        <div>BENCH / SUBS 
+            <button id="load-btn" class="btn btn-load" onclick="loadRoster()">LOAD ROSTER</button>
+        </div>
         <button class="btn" style="background:var(--ranger-blue); color:white; font-size:12px;" onclick="addSub()">+ Add</button>
     </div>
     <div id="subs-list" class="lineup-list"></div>
@@ -74,20 +67,17 @@
         home: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" }
     };
 
-    const ESTACADA_ROSTER = [
-        "Peyton Vollmer", "Izzy Bautista", "Nicole Payzant", "Destiny Schaffer", "Oliva Green", 
-        "Aubree Santos", "#0 Izabella Allgeier", "#2 Ashlynn Bunyard", "#3 Mckenzie Trujeque", 
-        "#6 Samantha Klein", "#7 Harlee Vader", "#10 Emily Yost", "#11 Madison Seal", 
-        "#13 Genevieve Huserik", "#17 Peyten Proffitt", "#26 Maddie Gaul", "#33 Jenci Hunter", "#34 Laney Briones"
-    ];
+    const ROSTERS = {
+        home: ["Peyton Vollmer", "Izzy Bautista", "Nicole Payzant", "Destiny Schaffer", "Oliva Green", "Aubree Santos", "#0 Izabella Allgeier", "#2 Ashlynn Bunyard", "#3 Mckenzie Trujeque", "#6 Samantha Klein", "#7 Harlee Vader", "#10 Emily Yost", "#11 Madison Seal", "#13 Genevieve Huserik", "#17 Peyten Proffitt", "#26 Maddie Gaul", "#33 Jenci Hunter", "#34 Laney Briones"],
+        away: ["#1 Brylee Kliewer", "#2 Piper Imholt", "#3 Madison Shultz (C)", "#5 Kendal Rost", "#6 Saydie Sanders", "#7 Abby LaVoie", "#8 Berlyn Lister", "#29 Sophia Shirley", "#10 Lexi Wilson", "#11 Paetyn Smith", "#13 Brenna Jackson (C)", "#22 Brooklyn Brady"]
+    };
 
     const posOptions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP", "SUB"];
 
     function init() {
-        const saved = localStorage.getItem('softball_lineup_v4');
-        if (saved) {
-            teams = JSON.parse(saved);
-        } else {
+        const saved = localStorage.getItem('softball_lineup_v5');
+        if (saved) { teams = JSON.parse(saved); } 
+        else {
             ['away', 'home'].forEach(t => {
                 for (let i = 0; i < 9; i++) teams[t].lineup.push({ name: "", pos: posOptions[i] });
                 teams[t].flex.push({ name: "", pos: "P" });
@@ -99,6 +89,9 @@
 
     function render() {
         const team = teams[currentTeam];
+        const loadBtn = document.getElementById('load-btn');
+        loadBtn.innerText = currentTeam === 'home' ? "LOAD ESTACADA" : "LOAD MOLALLA";
+        
         renderList('lineup-list', team.lineup, true);
         renderList('flex-list', team.flex, false, 'flex-row');
         renderSubs('subs-list', team.subs);
@@ -140,7 +133,7 @@
         teams[currentTeam].subs = getListData('subs-list');
         teams[currentTeam].cr_p = document.getElementById('cr-p').value;
         teams[currentTeam].cr_c = document.getElementById('cr-c').value;
-        localStorage.setItem('softball_lineup_v4', JSON.stringify(teams));
+        localStorage.setItem('softball_lineup_v5', JSON.stringify(teams));
     }
 
     function getListData(id) {
@@ -150,20 +143,18 @@
         }));
     }
 
-    function loadEstacada() {
-        if(confirm("Load the full Estacada roster into the bench?")) {
-            teams.home.subs = ESTACADA_ROSTER.map(name => ({ name, pos: "SUB" }));
-            if(currentTeam === 'home') render();
+    function loadRoster() {
+        const teamName = currentTeam === 'home' ? "Estacada" : "Molalla";
+        if(confirm(`Load the full ${teamName} roster into the bench?`)) {
+            teams[currentTeam].subs = ROSTERS[currentTeam].map(name => ({ name, pos: "SUB" }));
+            render();
             syncAllData();
         }
     }
 
     function setCR(btn, type) {
         const name = btn.parentElement.querySelector('input').value;
-        if (name) { 
-            document.getElementById(type === 'p' ? 'cr-p' : 'cr-c').value = name; 
-            syncAllData(); 
-        }
+        if (name) { document.getElementById(type === 'p' ? 'cr-p' : 'cr-c').value = name; syncAllData(); }
     }
 
     function addSub() { teams[currentTeam].subs.push({ name: "", pos: "SUB" }); render(); }
