@@ -10,11 +10,12 @@
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--light-bg); padding: 10px; margin: 0; }
         .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         
+        /* Away First Tabs */
         .tabs { display: flex; border-radius: 8px; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd; }
         .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; background: #eee; font-weight: bold; }
         .tab.active { background: var(--ranger-blue); color: white; }
 
-        .lineup-list { list-style: none; padding: 0; min-height: 50px; }
+        .lineup-list { list-style: none; padding: 0; min-height: 40px; }
         .player-row { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eee; background: #fff; }
         .handle { color: #ccc; font-size: 20px; padding: 0 5px; cursor: grab; }
         .order-num { width: 25px; font-weight: bold; color: #777; font-size: 14px; }
@@ -34,7 +35,8 @@
 
         @media print {
             .tabs, .btn, .handle, .section-header button, .btn-save { display: none !important; }
-            input { border: none !important; }
+            input { border: none !important; border-bottom: 1px solid #000 !important; }
+            body { padding: 0; }
         }
     </style>
 </head>
@@ -42,8 +44,8 @@
 
 <div class="container">
     <div class="tabs">
-        <div id="tab-home" class="tab active" onclick="switchTeam('home')">HOME</div>
-        <div id="tab-away" class="tab" onclick="switchTeam('away')">AWAY</div>
+        <div id="tab-away" class="tab active" onclick="switchTeam('away')">AWAY</div>
+        <div id="tab-home" class="tab" onclick="switchTeam('home')">HOME</div>
     </div>
 
     <div class="section-header">BATTING ORDER (1-9)</div>
@@ -55,7 +57,7 @@
     <div class="section-header">COURTESY RUNNERS</div>
     <div class="cr-section">
         <div class="cr-item"><strong>P:</strong> <input type="text" id="cr-p" placeholder="Runner Name"></div>
-        <div class="cr-item) "><strong>C:</strong> <input type="text" id="cr-c" placeholder="Runner Name"></div>
+        <div class="cr-item"><strong>C:</strong> <input type="text" id="cr-c" placeholder="Runner Name"></div>
     </div>
 
     <div class="section-header">
@@ -68,20 +70,20 @@
 </div>
 
 <script>
-    let currentTeam = 'home';
+    let currentTeam = 'away'; // Default to Away
     let teams = {
-        home: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" },
-        away: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" }
+        away: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" },
+        home: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" }
     };
 
     const posOptions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP", "SUB"];
 
     function init() {
-        const saved = localStorage.getItem('softball_lineup_v2');
+        const saved = localStorage.getItem('softball_lineup_v3');
         if (saved) {
             teams = JSON.parse(saved);
         } else {
-            ['home', 'away'].forEach(t => {
+            ['away', 'home'].forEach(t => {
                 for (let i = 0; i < 9; i++) teams[t].lineup.push({ name: "", pos: posOptions[i] });
                 teams[t].flex.push({ name: "", pos: "P" });
                 teams[t].subs.push({ name: "" });
@@ -100,19 +102,19 @@
         document.getElementById('cr-p').value = team.cr_p;
         document.getElementById('cr-c').value = team.cr_c;
 
-        setupSortable('lineup-list', 'lineup');
-        setupSortable('flex-list', 'flex');
-        setupSortable('subs-list', 'subs');
+        setupSortable('lineup-list');
+        setupSortable('flex-list');
+        setupSortable('subs-list');
     }
 
     function renderList(id, arr, showNumbers, extraClass = '') {
         const container = document.getElementById(id);
         container.innerHTML = arr.map((p, i) => `
-            <div class="player-row ${extraClass}" data-id="${i}">
+            <div class="player-row ${extraClass}">
                 <div class="handle">⠿</div>
                 <div class="order-num">${showNumbers ? i + 1 : 'F'}</div>
-                <input type="text" value="${p.name}" oninput="updateVal('${id}', ${i}, 'name', this.value)">
-                <select onchange="updateVal('${id}', ${i}, 'pos', this.value)">
+                <input type="text" value="${p.name || ''}" placeholder="Player Name" oninput="syncAllData()">
+                <select onchange="syncAllData()">
                     ${posOptions.map(opt => `<option value="${opt}" ${p.pos === opt ? 'selected' : ''}>${opt}</option>`).join('')}
                 </select>
             </div>
@@ -122,23 +124,22 @@
     function renderSubs(id, arr) {
         const container = document.getElementById(id);
         container.innerHTML = arr.map((p, i) => `
-            <div class="player-row" data-id="${i}">
+            <div class="player-row">
                 <div class="handle">⠿</div>
-                <input type="text" value="${p.name}" oninput="updateVal('subs-list', ${i}, 'name', this.value)">
-                <button class="btn-cr" onclick="setCR('${p.name}', 'p')">P</button>
-                <button class="btn-cr" onclick="setCR('${p.name}', 'c')">C</button>
+                <input type="text" value="${p.name || ''}" placeholder="Substitute" oninput="syncAllData()">
+                <button class="btn-cr" onclick="setCR(this, 'p')">P</button>
+                <button class="btn-cr" onclick="setCR(this, 'c')">C</button>
                 <button class="btn" style="background:none; color:red;" onclick="removeSub(${i})">✕</button>
             </div>
         `).join('');
     }
 
-    function setupSortable(id, key) {
+    function setupSortable(id) {
         new Sortable(document.getElementById(id), {
             group: 'shared-lineup',
             animation: 150,
             handle: '.handle',
-            onEnd: function (evt) {
-                // This is where the "Swap" magic happens across lists
+            onEnd: function () {
                 syncAllData();
                 render();
             }
@@ -149,6 +150,9 @@
         teams[currentTeam].lineup = getListData('lineup-list');
         teams[currentTeam].flex = getListData('flex-list');
         teams[currentTeam].subs = getListData('subs-list');
+        teams[currentTeam].cr_p = document.getElementById('cr-p').value;
+        teams[currentTeam].cr_c = document.getElementById('cr-c').value;
+        localStorage.setItem('softball_lineup_v3', JSON.stringify(teams));
     }
 
     function getListData(id) {
@@ -158,20 +162,23 @@
         }));
     }
 
-    function updateVal(listId, i, key, val) { 
-        syncAllData();
-        saveData(false);
-    }
-
-    function setCR(name, type) {
+    function setCR(btn, type) {
+        const name = btn.parentElement.querySelector('input').value;
         if (!name) return;
         if (type === 'p') document.getElementById('cr-p').value = name;
         if (type === 'c') document.getElementById('cr-c').value = name;
-        saveData(false);
+        syncAllData();
     }
 
-    function addSub() { teams[currentTeam].subs.push({ name: "", pos: "SUB" }); render(); }
-    function removeSub(i) { teams[currentTeam].subs.splice(i, 1); render(); }
+    function addSub() { 
+        teams[currentTeam].subs.push({ name: "", pos: "SUB" }); 
+        render(); 
+    }
+
+    function removeSub(i) { 
+        teams[currentTeam].subs.splice(i, 1); 
+        render(); 
+    }
 
     function switchTeam(team) {
         syncAllData();
@@ -181,12 +188,9 @@
         render();
     }
 
-    function saveData(alertUser = true) {
+    function saveData() {
         syncAllData();
-        teams.home.cr_p = document.getElementById('cr-p').value; // Basic sync for CRs
-        teams.home.cr_c = document.getElementById('cr-c').value;
-        localStorage.setItem('softball_lineup_v2', JSON.stringify(teams));
-        if(alertUser) alert("Saved!");
+        alert("Lineup Saved Locally!");
     }
 
     init();
