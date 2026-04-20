@@ -10,7 +10,6 @@
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--light-bg); padding: 10px; margin: 0; }
         .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         
-        /* Away First Tabs */
         .tabs { display: flex; border-radius: 8px; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd; }
         .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; background: #eee; font-weight: bold; }
         .tab.active { background: var(--ranger-blue); color: white; }
@@ -25,18 +24,17 @@
 
         .section-header { background: #eee; padding: 8px; font-weight: bold; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
         .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-load { background: #28a745; color: white; font-size: 10px; margin-left: 5px; }
         .btn-cr { background: #eef6ff; color: var(--ranger-blue); border: 1px solid var(--ranger-blue); font-size: 11px; padding: 4px 6px; }
-        .btn-save { background: #28a745; color: white; width: 100%; margin-top: 20px; font-size: 16px; height: 45px; }
+        .btn-save { background: var(--ranger-blue); color: white; width: 100%; margin-top: 20px; font-size: 16px; height: 45px; }
 
         .cr-section { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .cr-item { display: flex; align-items: center; gap: 10px; background: #eef6ff; padding: 8px; border-radius: 6px; border-left: 4px solid var(--ranger-blue); }
-        
         .flex-row { border-left: 5px solid var(--ranger-red); background: #fff5f5; }
 
         @media print {
             .tabs, .btn, .handle, .section-header button, .btn-save { display: none !important; }
             input { border: none !important; border-bottom: 1px solid #000 !important; }
-            body { padding: 0; }
         }
     </style>
 </head>
@@ -61,7 +59,7 @@
     </div>
 
     <div class="section-header">
-        BENCH / SUBS
+        <div>BENCH / SUBS <button class="btn btn-load" onclick="loadEstacada()">LOAD ESTACADA</button></div>
         <button class="btn" style="background:var(--ranger-blue); color:white; font-size:12px;" onclick="addSub()">+ Add</button>
     </div>
     <div id="subs-list" class="lineup-list"></div>
@@ -70,16 +68,23 @@
 </div>
 
 <script>
-    let currentTeam = 'away'; // Default to Away
+    let currentTeam = 'away';
     let teams = {
         away: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" },
         home: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" }
     };
 
+    const ESTACADA_ROSTER = [
+        "Peyton Vollmer", "Izzy Bautista", "Nicole Payzant", "Destiny Schaffer", "Oliva Green", 
+        "Aubree Santos", "#0 Izabella Allgeier", "#2 Ashlynn Bunyard", "#3 Mckenzie Trujeque", 
+        "#6 Samantha Klein", "#7 Harlee Vader", "#10 Emily Yost", "#11 Madison Seal", 
+        "#13 Genevieve Huserik", "#17 Peyten Proffitt", "#26 Maddie Gaul", "#33 Jenci Hunter", "#34 Laney Briones"
+    ];
+
     const posOptions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP", "SUB"];
 
     function init() {
-        const saved = localStorage.getItem('softball_lineup_v3');
+        const saved = localStorage.getItem('softball_lineup_v4');
         if (saved) {
             teams = JSON.parse(saved);
         } else {
@@ -94,39 +99,30 @@
 
     function render() {
         const team = teams[currentTeam];
-        
         renderList('lineup-list', team.lineup, true);
         renderList('flex-list', team.flex, false, 'flex-row');
         renderSubs('subs-list', team.subs);
-        
         document.getElementById('cr-p').value = team.cr_p;
         document.getElementById('cr-c').value = team.cr_c;
-
-        setupSortable('lineup-list');
-        setupSortable('flex-list');
-        setupSortable('subs-list');
+        setupSortable('lineup-list'); setupSortable('flex-list'); setupSortable('subs-list');
     }
 
-    function renderList(id, arr, showNumbers, extraClass = '') {
-        const container = document.getElementById(id);
-        container.innerHTML = arr.map((p, i) => `
-            <div class="player-row ${extraClass}">
+    function renderList(id, arr, showNum, cls = '') {
+        document.getElementById(id).innerHTML = arr.map((p, i) => `
+            <div class="player-row ${cls}">
                 <div class="handle">⠿</div>
-                <div class="order-num">${showNumbers ? i + 1 : 'F'}</div>
-                <input type="text" value="${p.name || ''}" placeholder="Player Name" oninput="syncAllData()">
-                <select onchange="syncAllData()">
-                    ${posOptions.map(opt => `<option value="${opt}" ${p.pos === opt ? 'selected' : ''}>${opt}</option>`).join('')}
-                </select>
+                <div class="order-num">${showNum ? i + 1 : 'F'}</div>
+                <input type="text" value="${p.name || ''}" placeholder="Name" oninput="syncAllData()">
+                <select onchange="syncAllData()">${posOptions.map(o => `<option value="${o}" ${p.pos === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
             </div>
         `).join('');
     }
 
     function renderSubs(id, arr) {
-        const container = document.getElementById(id);
-        container.innerHTML = arr.map((p, i) => `
+        document.getElementById(id).innerHTML = arr.map((p, i) => `
             <div class="player-row">
                 <div class="handle">⠿</div>
-                <input type="text" value="${p.name || ''}" placeholder="Substitute" oninput="syncAllData()">
+                <input type="text" value="${p.name || ''}" placeholder="Sub" oninput="syncAllData()">
                 <button class="btn-cr" onclick="setCR(this, 'p')">P</button>
                 <button class="btn-cr" onclick="setCR(this, 'c')">C</button>
                 <button class="btn" style="background:none; color:red;" onclick="removeSub(${i})">✕</button>
@@ -135,15 +131,7 @@
     }
 
     function setupSortable(id) {
-        new Sortable(document.getElementById(id), {
-            group: 'shared-lineup',
-            animation: 150,
-            handle: '.handle',
-            onEnd: function () {
-                syncAllData();
-                render();
-            }
-        });
+        new Sortable(document.getElementById(id), { group: 'shared', animation: 150, handle: '.handle', onEnd: () => { syncAllData(); render(); } });
     }
 
     function syncAllData() {
@@ -152,7 +140,7 @@
         teams[currentTeam].subs = getListData('subs-list');
         teams[currentTeam].cr_p = document.getElementById('cr-p').value;
         teams[currentTeam].cr_c = document.getElementById('cr-c').value;
-        localStorage.setItem('softball_lineup_v3', JSON.stringify(teams));
+        localStorage.setItem('softball_lineup_v4', JSON.stringify(teams));
     }
 
     function getListData(id) {
@@ -162,36 +150,26 @@
         }));
     }
 
+    function loadEstacada() {
+        if(confirm("Load the full Estacada roster into the bench?")) {
+            teams.home.subs = ESTACADA_ROSTER.map(name => ({ name, pos: "SUB" }));
+            if(currentTeam === 'home') render();
+            syncAllData();
+        }
+    }
+
     function setCR(btn, type) {
         const name = btn.parentElement.querySelector('input').value;
-        if (!name) return;
-        if (type === 'p') document.getElementById('cr-p').value = name;
-        if (type === 'c') document.getElementById('cr-c').value = name;
-        syncAllData();
+        if (name) { 
+            document.getElementById(type === 'p' ? 'cr-p' : 'cr-c').value = name; 
+            syncAllData(); 
+        }
     }
 
-    function addSub() { 
-        teams[currentTeam].subs.push({ name: "", pos: "SUB" }); 
-        render(); 
-    }
-
-    function removeSub(i) { 
-        teams[currentTeam].subs.splice(i, 1); 
-        render(); 
-    }
-
-    function switchTeam(team) {
-        syncAllData();
-        currentTeam = team;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById('tab-' + team).classList.add('active');
-        render();
-    }
-
-    function saveData() {
-        syncAllData();
-        alert("Lineup Saved Locally!");
-    }
+    function addSub() { teams[currentTeam].subs.push({ name: "", pos: "SUB" }); render(); }
+    function removeSub(i) { teams[currentTeam].subs.splice(i, 1); render(); }
+    function switchTeam(team) { syncAllData(); currentTeam = team; document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id.includes(team))); render(); }
+    function saveData() { syncAllData(); alert("Saved!"); }
 
     init();
 </script>
