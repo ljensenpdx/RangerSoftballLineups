@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranger Softball Lineup</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; border-bottom: 2px solid #ce1126; padding-bottom: 10px; }
+        .lineup-list { list-style: none; padding: 0; }
+        .player-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; background: #fff; transition: background 0.2s; }
+        .player-row:hover { background: #f9f9f9; }
+        .order { width: 30px; font-weight: bold; color: #666; }
+        .flex-row { background: #fff5f5; border-left: 4px solid #ce1126; }
+        input[type="text"] { flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .controls { display: flex; flex-direction: column; gap: 2px; }
+        button { cursor: pointer; border: none; background: #004d95; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; }
+        button:hover { background: #003366; }
+        .footer-btns { margin-top: 20px; display: flex; justify-content: space-between; }
+        .print-btn { background: #28a745; padding: 10px 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Softball Lineup Card</h2>
+    <div id="lineup" class="lineup-list"></div>
+    
+    <div class="footer-btns">
+        <button class="print-btn" onclick="window.print()">Print Lineup</button>
+        <button onclick="resetLineup()" style="background:#6c757d">Reset All</button>
+    </div>
+</div>
+
+<script>
+    const positions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP"];
+    let players = Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        name: "",
+        pos: positions[i] || "SUB"
+    }));
+
+    function render() {
+        const list = document.getElementById('lineup');
+        list.innerHTML = '';
+
+        players.forEach((player, index) => {
+            const isFlex = index === 9;
+            const row = document.createElement('div');
+            row.className = `player-row ${isFlex ? 'flex-row' : ''}`;
+            
+            row.innerHTML = `
+                <div class="order">${isFlex ? 'F' : index + 1}</div>
+                <input type="text" placeholder="${isFlex ? 'FLEX Player Name' : 'Player Name'}" 
+                    value="${player.name}" oninput="updateName(${index}, this.value)">
+                <select onchange="updatePos(${index}, this.value)">
+                    ${positions.map(p => `<option value="${p}" ${player.pos === p ? 'selected' : ''}>${p}</option>`).join('')}
+                </select>
+                <div class="controls">
+                    ${index > 0 && !isFlex ? `<button onclick="move(${index}, -1)">▲</button>` : ''}
+                    ${index < 8 ? `<button onclick="move(${index}, 1)">▼</button>` : ''}
+                </div>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    function updateName(index, val) { players[index].name = val; }
+    function updatePos(index, val) { players[index].pos = val; }
+
+    function move(index, direction) {
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= 9) return; // Keep Flex at 10
+        const temp = players[index];
+        players[index] = players[targetIndex];
+        players[targetIndex] = temp;
+        render();
+    }
+
+    function resetLineup() {
+        if(confirm("Clear all names?")) {
+            players.forEach(p => p.name = "");
+            render();
+        }
+    }
+
+    render();
+</script>
+
+</body>
+</html>
