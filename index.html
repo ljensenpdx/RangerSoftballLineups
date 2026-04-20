@@ -3,90 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranger Softball Lineup</title>
+    <title>Ranger Gameday Hub | Terminal</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; border-bottom: 2px solid #ce1126; padding-bottom: 10px; }
-        .lineup-list { list-style: none; padding: 0; }
-        .player-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; background: #fff; transition: background 0.2s; }
-        .player-row:hover { background: #f9f9f9; }
-        .order { width: 30px; font-weight: bold; color: #666; }
-        .flex-row { background: #fff5f5; border-left: 4px solid #ce1126; }
-        input[type="text"] { flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        .controls { display: flex; flex-direction: column; gap: 2px; }
-        button { cursor: pointer; border: none; background: #004d95; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; }
-        button:hover { background: #003366; }
-        .footer-btns { margin-top: 20px; display: flex; justify-content: space-between; }
-        .print-btn { background: #28a745; padding: 10px 20px; font-size: 14px; }
+        :root {
+            --bg: #000000;
+            --green: #00ff00; 
+            --green-dim: #004400;
+            --active: #ffffff;
+            --warn: #ffff00;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--green);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            text-transform: uppercase;
+        }
+
+        .hub-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* TEAM WINDOWS */
+        .window {
+            border: 3px solid var(--green);
+            background: var(--bg);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+
+        .window-header {
+            background: var(--green);
+            color: #000;
+            padding: 10px;
+            font-weight: 900;
+            display: flex;
+            justify-content: space-between;
+            letter-spacing: 2px;
+        }
+
+        .roster-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .roster-table th {
+            text-align: left;
+            border-bottom: 1px solid var(--green-dim);
+            padding: 10px;
+            font-size: 0.8rem;
+        }
+
+        .player-row {
+            border-bottom: 1px solid var(--green-dim);
+            cursor: pointer;
+        }
+
+        .player-row:hover {
+            background: var(--green-dim);
+        }
+
+        .player-row td {
+            padding: 12px 10px;
+            font-size: 1.1rem;
+        }
+
+        /* STATUS MARKERS */
+        .status-cell { width: 100px; text-align: center; }
+        
+        .btn-cr {
+            border: 1px solid var(--green);
+            background: transparent;
+            color: var(--green);
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+
+        .btn-cr.active {
+            background: var(--warn);
+            color: #000;
+            border-color: var(--warn);
+        }
+
+        .is-batter {
+            color: #fff;
+            text-shadow: 0 0 10px var(--green);
+            font-weight: bold;
+        }
+
+        .is-batter::before {
+            content: "> ";
+        }
+
+        .cr-tag {
+            color: var(--warn);
+            font-size: 0.8rem;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        /* ANNOUNCER DASHBOARD */
+        .footer-tools {
+            grid-column: span 2;
+            margin-top: 20px;
+            border-top: 2px double var(--green);
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        .input-group { margin-bottom: 20px; }
+        input {
+            background: #000;
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 10px;
+            font-family: inherit;
+        }
+        
+        .btn-action {
+            background: var(--green);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 5px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Softball Lineup Card</h2>
-    <div id="lineup" class="lineup-list"></div>
-    
-    <div class="footer-btns">
-        <button class="print-btn" onclick="window.print()">Print Lineup</button>
-        <button onclick="resetLineup()" style="background:#6c757d">Reset All</button>
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="letter-spacing: 5px;">RANGER_GAMEDAY_HUB // DIAMOND_OPS</h1>
     </div>
-</div>
+
+    <div class="hub-container">
+        
+        <div class="window" id="away-window">
+            <div class="window-header">
+                <span>VISITOR // AWAY_TEAM</span>
+                <span id="away-score">0</span>
+            </div>
+            <table class="roster-table" id="away-roster">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>PLAYER NAME</th>
+                        <th>POS</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="window" id="home-window">
+            <div class="window-header">
+                <span>RANGERS // HOME_TEAM</span>
+                <span id="home-score">0</span>
+            </div>
+            <table class="roster-table" id="home-roster">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>PLAYER NAME</th>
+                        <th>POS</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="footer-tools">
+            <div class="input-group">
+                <select id="team-select" style="background:#000; color:#0f0; border:1px solid #0f0; padding:10px;">
+                    <option value="away">VISITOR</option>
+                    <option value="home">RANGERS</option>
+                </select>
+                <input type="text" id="pNum" placeholder=" #" style="width: 40px;">
+                <input type="text" id="pName" placeholder=" PLAYER NAME">
+                <input type="text" id="pPos" placeholder=" POS" style="width: 50px;">
+                <button class="btn-action" onclick="addPlayer()">+ ADD TO ROSTER</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--green-dim);">CLICK PLAYER TO SET AS BATTER // CLICK [CR] TO MARK COURTESY RUNNER</p>
+        </div>
+
+    </div>
 
 <script>
-    const positions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP"];
-    let players = Array.from({ length: 10 }, (_, i) => ({
-        id: i,
-        name: "",
-        pos: positions[i] || "SUB"
-    }));
+    let rosters = {
+        away: [],
+        home: []
+    };
 
-    function render() {
-        const list = document.getElementById('lineup');
-        list.innerHTML = '';
+    function addPlayer() {
+        const team = document.getElementById('team-select').value;
+        const num = document.getElementById('pNum').value;
+        const name = document.getElementById('pName').value;
+        const pos = document.getElementById('pPos').value;
 
-        players.forEach((player, index) => {
-            const isFlex = index === 9;
-            const row = document.createElement('div');
-            row.className = `player-row ${isFlex ? 'flex-row' : ''}`;
-            
-            row.innerHTML = `
-                <div class="order">${isFlex ? 'F' : index + 1}</div>
-                <input type="text" placeholder="${isFlex ? 'FLEX Player Name' : 'Player Name'}" 
-                    value="${player.name}" oninput="updateName(${index}, this.value)">
-                <select onchange="updatePos(${index}, this.value)">
-                    ${positions.map(p => `<option value="${p}" ${player.pos === p ? 'selected' : ''}>${p}</option>`).join('')}
-                </select>
-                <div class="controls">
-                    ${index > 0 && !isFlex ? `<button onclick="move(${index}, -1)">▲</button>` : ''}
-                    ${index < 8 ? `<button onclick="move(${index}, 1)">▼</button>` : ''}
-                </div>
-            `;
-            list.appendChild(row);
+        if(!name) return;
+
+        rosters[team].push({
+            num, name, pos, isBatter: false, isCR: false
+        });
+
+        renderRosters();
+        // Clear inputs
+        document.getElementById('pNum').value = '';
+        document.getElementById('pName').value = '';
+        document.getElementById('pPos').value = '';
+    }
+
+    function toggleBatter(team, index) {
+        // Reset all batters for this team
+        rosters[team].forEach(p => p.isBatter = false);
+        // Set selected
+        rosters[team][index].isBatter = true;
+        renderRosters();
+    }
+
+    function toggleCR(event, team, index) {
+        event.stopPropagation(); // Prevents triggering the "batter" click
+        rosters[team][index].isCR = !rosters[team][index].isCR;
+        renderRosters();
+    }
+
+    function renderRosters() {
+        ['away', 'home'].forEach(team => {
+            const tbody = document.querySelector(`#${team}-roster tbody`);
+            tbody.innerHTML = '';
+
+            rosters[team].forEach((p, i) => {
+                const row = document.createElement('tr');
+                row.className = 'player-row';
+                row.onclick = () => toggleBatter(team, i);
+
+                row.innerHTML = `
+                    <td>${p.num}</td>
+                    <td class="${p.isBatter ? 'is-batter' : ''}">
+                        ${p.name} ${p.isCR ? '<span class="cr-tag">[CR ACTIVE]</span>' : ''}
+                    </td>
+                    <td>${p.pos}</td>
+                    <td class="status-cell">
+                        <button class="btn-cr ${p.isCR ? 'active' : ''}" onclick="toggleCR(event, '${team}', ${i})">CR</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
         });
     }
-
-    function updateName(index, val) { players[index].name = val; }
-    function updatePos(index, val) { players[index].pos = val; }
-
-    function move(index, direction) {
-        const targetIndex = index + direction;
-        if (targetIndex < 0 || targetIndex >= 9) return; // Keep Flex at 10
-        const temp = players[index];
-        players[index] = players[targetIndex];
-        players[targetIndex] = temp;
-        render();
-    }
-
-    function resetLineup() {
-        if(confirm("Clear all names?")) {
-            players.forEach(p => p.name = "");
-            render();
-        }
-    }
-
-    render();
 </script>
 
 </body>
