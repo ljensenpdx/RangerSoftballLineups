@@ -3,44 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranger Gameday - Softball Lineup</title>
+    <title>Ranger Gameday Hub - Pro Lineup</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root { --ranger-red: #ce1126; --ranger-blue: #004d95; --light-bg: #f4f4f9; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--light-bg); padding: 10px; margin: 0; }
         .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         
-        /* Tabs for Home/Away */
         .tabs { display: flex; border-radius: 8px; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd; }
-        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; background: #eee; font-weight: bold; transition: 0.3s; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; background: #eee; font-weight: bold; }
         .tab.active { background: var(--ranger-blue); color: white; }
 
-        h2 { text-align: center; margin-top: 0; color: #333; font-size: 1.4rem; }
-        
-        .lineup-list { list-style: none; padding: 0; margin: 0; }
-        .player-row { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eee; background: #fff; cursor: grab; }
-        .player-row:active { cursor: grabbing; }
-        .handle { color: #ccc; font-size: 20px; padding: 0 5px; }
-        .order-num { width: 25px; font-weight: bold; color: #777; }
+        .lineup-list { list-style: none; padding: 0; min-height: 50px; }
+        .player-row { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eee; background: #fff; }
+        .handle { color: #ccc; font-size: 20px; padding: 0 5px; cursor: grab; }
+        .order-num { width: 25px; font-weight: bold; color: #777; font-size: 14px; }
         
         input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-        select { padding: 9px; border: 1px solid #ccc; border-radius: 6px; background: white; }
+        select { padding: 9px; border: 1px solid #ccc; border-radius: 6px; background: white; width: 70px; }
 
-        .flex-row { background: #fff5f5; border-left: 5px solid var(--ranger-red); }
-        .section-header { background: #eee; padding: 8px; font-weight: bold; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
-        
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-add { background: var(--ranger-blue); color: white; font-size: 12px; }
-        .btn-save { background: #28a745; color: white; width: 100%; margin-top: 20px; font-size: 16px; }
-        .btn-print { background: #6c757d; color: white; width: 100%; margin-top: 8px; }
+        .section-header { background: #eee; padding: 8px; font-weight: bold; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
+        .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-cr { background: #eef6ff; color: var(--ranger-blue); border: 1px solid var(--ranger-blue); font-size: 11px; padding: 4px 6px; }
+        .btn-save { background: #28a745; color: white; width: 100%; margin-top: 20px; font-size: 16px; height: 45px; }
 
         .cr-section { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
-        .cr-item { display: flex; align-items: center; gap: 10px; background: #eef6ff; padding: 8px; border-radius: 6px; }
+        .cr-item { display: flex; align-items: center; gap: 10px; background: #eef6ff; padding: 8px; border-radius: 6px; border-left: 4px solid var(--ranger-blue); }
+        
+        .flex-row { border-left: 5px solid var(--ranger-red); background: #fff5f5; }
 
         @media print {
-            .tabs, .btn, .handle, .section-header button { display: none !important; }
-            body { background: white; padding: 0; }
-            .container { box-shadow: none; width: 100%; border: none; }
+            .tabs, .btn, .handle, .section-header button, .btn-save { display: none !important; }
+            input { border: none !important; }
         }
     </style>
 </head>
@@ -52,131 +46,147 @@
         <div id="tab-away" class="tab" onclick="switchTeam('away')">AWAY</div>
     </div>
 
-    <h2 id="team-title">Home Lineup</h2>
+    <div class="section-header">BATTING ORDER (1-9)</div>
+    <div id="lineup-list" class="lineup-list"></div>
 
-    <div id="lineup-container" class="lineup-list">
-        </div>
-
-    <div id="flex-container">
-        </div>
+    <div class="section-header">FLEX (10th - Defense Only)</div>
+    <div id="flex-list" class="lineup-list"></div>
 
     <div class="section-header">COURTESY RUNNERS</div>
     <div class="cr-section">
-        <div class="cr-item"><strong>P:</strong> <input type="text" id="cr-p" placeholder="Runner for Pitcher"></div>
-        <div class="cr-item"><strong>C:</strong> <input type="text" id="cr-c" placeholder="Runner for Catcher"></div>
+        <div class="cr-item"><strong>P:</strong> <input type="text" id="cr-p" placeholder="Runner Name"></div>
+        <div class="cr-item) "><strong>C:</strong> <input type="text" id="cr-c" placeholder="Runner Name"></div>
     </div>
 
     <div class="section-header">
-        BENCH / SUBS 
-        <button class="btn btn-add" onclick="addSub()">+ Add Sub</button>
+        BENCH / SUBS
+        <button class="btn" style="background:var(--ranger-blue); color:white; font-size:12px;" onclick="addSub()">+ Add</button>
     </div>
-    <div id="subs-container" class="lineup-list" style="margin-top:5px;">
-        </div>
+    <div id="subs-list" class="lineup-list"></div>
 
-    <button class="btn btn-save" onclick="saveData()">Save Lineup</button>
-    <button class="btn btn-print" onclick="window.print()">Print Card</button>
+    <button class="btn btn-save" onclick="saveData()">Save All Changes</button>
 </div>
 
 <script>
     let currentTeam = 'home';
-    let data = {
-        home: { players: [], flex: {name: "", pos: "P"}, subs: [], cr: {p: "", c: ""} },
-        away: { players: [], flex: {name: "", pos: "P"}, subs: [], cr: {p: "", c: ""} }
+    let teams = {
+        home: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" },
+        away: { lineup: [], flex: [], subs: [], cr_p: "", cr_c: "" }
     };
 
-    const positions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP", "SUB"];
+    const posOptions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DP", "SUB"];
 
-    // Initialize blank data if nothing in storage
     function init() {
-        const saved = localStorage.getItem('ranger_softball_data');
+        const saved = localStorage.getItem('softball_lineup_v2');
         if (saved) {
-            data = JSON.parse(saved);
+            teams = JSON.parse(saved);
         } else {
-            for (let team of ['home', 'away']) {
-                for (let i = 0; i < 9; i++) data[team].players.push({ name: "", pos: positions[i] });
-                data[team].subs = [{ name: "" }]; 
-            }
+            ['home', 'away'].forEach(t => {
+                for (let i = 0; i < 9; i++) teams[t].lineup.push({ name: "", pos: posOptions[i] });
+                teams[t].flex.push({ name: "", pos: "P" });
+                teams[t].subs.push({ name: "" });
+            });
         }
         render();
     }
 
     function render() {
-        const team = data[currentTeam];
+        const team = teams[currentTeam];
         
-        // Render 1-9
-        const list = document.getElementById('lineup-container');
-        list.innerHTML = team.players.map((p, i) => `
-            <div class="player-row" data-index="${i}">
+        renderList('lineup-list', team.lineup, true);
+        renderList('flex-list', team.flex, false, 'flex-row');
+        renderSubs('subs-list', team.subs);
+        
+        document.getElementById('cr-p').value = team.cr_p;
+        document.getElementById('cr-c').value = team.cr_c;
+
+        setupSortable('lineup-list', 'lineup');
+        setupSortable('flex-list', 'flex');
+        setupSortable('subs-list', 'subs');
+    }
+
+    function renderList(id, arr, showNumbers, extraClass = '') {
+        const container = document.getElementById(id);
+        container.innerHTML = arr.map((p, i) => `
+            <div class="player-row ${extraClass}" data-id="${i}">
                 <div class="handle">⠿</div>
-                <div class="order-num">${i + 1}</div>
-                <input type="text" value="${p.name}" oninput="updatePlayer(${i}, 'name', this.value)" placeholder="Player Name">
-                <select onchange="updatePlayer(${i}, 'pos', this.value)">
-                    ${positions.map(pos => `<option value="${pos}" ${p.pos === pos ? 'selected' : ''}>${pos}</option>`).join('')}
+                <div class="order-num">${showNumbers ? i + 1 : 'F'}</div>
+                <input type="text" value="${p.name}" oninput="updateVal('${id}', ${i}, 'name', this.value)">
+                <select onchange="updateVal('${id}', ${i}, 'pos', this.value)">
+                    ${posOptions.map(opt => `<option value="${opt}" ${p.pos === opt ? 'selected' : ''}>${opt}</option>`).join('')}
                 </select>
             </div>
         `).join('');
+    }
 
-        // Render Flex (10th)
-        const flexBox = document.getElementById('flex-container');
-        flexBox.innerHTML = `
-            <div class="player-row flex-row">
-                <div class="handle" style="visibility:hidden">⠿</div>
-                <div class="order-num">F</div>
-                <input type="text" value="${team.flex.name}" oninput="updateFlex('name', this.value)" placeholder="FLEX (Non-Batting)">
-                <select onchange="updateFlex('pos', this.value)">
-                    ${positions.map(pos => `<option value="${pos}" ${team.flex.pos === pos ? 'selected' : ''}>${pos}</option>`).join('')}
-                </select>
-            </div>
-        `;
-
-        // Render CR
-        document.getElementById('cr-p').value = team.cr.p;
-        document.getElementById('cr-c').value = team.cr.c;
-
-        // Render Subs
-        const subList = document.getElementById('subs-container');
-        subList.innerHTML = team.subs.map((s, i) => `
-            <div class="player-row" style="cursor:default">
-                <input type="text" value="${s.name}" oninput="updateSub(${i}, this.value)" placeholder="Substitute Name">
+    function renderSubs(id, arr) {
+        const container = document.getElementById(id);
+        container.innerHTML = arr.map((p, i) => `
+            <div class="player-row" data-id="${i}">
+                <div class="handle">⠿</div>
+                <input type="text" value="${p.name}" oninput="updateVal('subs-list', ${i}, 'name', this.value)">
+                <button class="btn-cr" onclick="setCR('${p.name}', 'p')">P</button>
+                <button class="btn-cr" onclick="setCR('${p.name}', 'c')">C</button>
                 <button class="btn" style="background:none; color:red;" onclick="removeSub(${i})">✕</button>
             </div>
         `).join('');
+    }
 
-        // Re-init Sortable
-        new Sortable(list, {
-            handle: '.handle',
+    function setupSortable(id, key) {
+        new Sortable(document.getElementById(id), {
+            group: 'shared-lineup',
             animation: 150,
-            onEnd: (evt) => {
-                const movedItem = team.players.splice(evt.oldIndex, 1)[0];
-                team.players.splice(evt.newIndex, 0, movedItem);
-                render(); 
+            handle: '.handle',
+            onEnd: function (evt) {
+                // This is where the "Swap" magic happens across lists
+                syncAllData();
+                render();
             }
         });
     }
 
-    function updatePlayer(i, key, val) { data[currentTeam].players[i][key] = val; }
-    function updateFlex(key, val) { data[currentTeam].flex[key] = val; }
-    function updateSub(i, val) { data[currentTeam].subs[i].name = val; }
-    function addSub() { data[currentTeam].subs.push({ name: "" }); render(); }
-    function removeSub(i) { data[currentTeam].subs.splice(i, 1); render(); }
+    function syncAllData() {
+        teams[currentTeam].lineup = getListData('lineup-list');
+        teams[currentTeam].flex = getListData('flex-list');
+        teams[currentTeam].subs = getListData('subs-list');
+    }
+
+    function getListData(id) {
+        return Array.from(document.getElementById(id).children).map(row => ({
+            name: row.querySelector('input').value,
+            pos: row.querySelector('select') ? row.querySelector('select').value : "SUB"
+        }));
+    }
+
+    function updateVal(listId, i, key, val) { 
+        syncAllData();
+        saveData(false);
+    }
+
+    function setCR(name, type) {
+        if (!name) return;
+        if (type === 'p') document.getElementById('cr-p').value = name;
+        if (type === 'c') document.getElementById('cr-c').value = name;
+        saveData(false);
+    }
+
+    function addSub() { teams[currentTeam].subs.push({ name: "", pos: "SUB" }); render(); }
+    function removeSub(i) { teams[currentTeam].subs.splice(i, 1); render(); }
 
     function switchTeam(team) {
-        // Sync CRs before switching
-        data[currentTeam].cr.p = document.getElementById('cr-p').value;
-        data[currentTeam].cr.c = document.getElementById('cr-c').value;
-
+        syncAllData();
         currentTeam = team;
-        document.getElementById('tab-home').classList.toggle('active', team === 'home');
-        document.getElementById('tab-away').classList.toggle('active', team === 'away');
-        document.getElementById('team-title').innerText = team.toUpperCase() + " Lineup";
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + team).classList.add('active');
         render();
     }
 
-    function saveData() {
-        data[currentTeam].cr.p = document.getElementById('cr-p').value;
-        data[currentTeam].cr.c = document.getElementById('cr-c').value;
-        localStorage.setItem('ranger_softball_data', JSON.stringify(data));
-        alert("Lineup Saved Locally!");
+    function saveData(alertUser = true) {
+        syncAllData();
+        teams.home.cr_p = document.getElementById('cr-p').value; // Basic sync for CRs
+        teams.home.cr_c = document.getElementById('cr-c').value;
+        localStorage.setItem('softball_lineup_v2', JSON.stringify(teams));
+        if(alertUser) alert("Saved!");
     }
 
     init();
